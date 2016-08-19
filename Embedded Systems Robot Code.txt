@@ -1,0 +1,111 @@
+/*
+ * Final_Project_Test.c
+ *
+ * Created: 4/19/2016 11:06:02
+ */
+
+#include <asf.h>
+#include <stdio.h>
+#include <stdlib.h>
+#define SERIAL_CONNECTION &USARTC0
+
+static usart_rs232_options_t USART_SERIAL_OPTIONS = {
+	.baudrate = 9600,
+	.charlength = USART_CHSIZE_8BIT_gc,
+	.paritytype = USART_PMODE_DISABLED_gc,
+	.stopbits = false
+};
+
+struct pwm_config mypwm[2]; //For your PWM configuration –CKH
+
+int main (void)
+{
+	board_init();
+	sysclk_init();
+	st7565r_init();
+	gfx_mono_init();
+
+	pwm_init(&mypwm[0], PWM_TCC0, PWM_CH_B, 500);//On A3BU Xplained board, SCL on J1
+	pwm_init(&mypwm[1], PWM_TCC0, PWM_CH_A, 500);//On A3BU Xplained board, SDA on J1
+
+	usart_init_rs232(SERIAL_CONNECTION, &USART_SERIAL_OPTIONS);
+	
+	char graphicChecker[8] = " ";
+	int speed = 60;
+	
+	while (true)
+	{
+		//char string_output[32];
+		uint8_t input = '\0';
+		input = usart_getchar(SERIAL_CONNECTION);
+		LED_Toggle(NHD_C12832A1Z_BACKLIGHT);
+		usart_putchar(SERIAL_CONNECTION, input);
+		graphicChecker[6] = input;
+
+		for(int i = 0; i < 6; i++){
+			graphicChecker[i] = graphicChecker[i + 1];
+		}
+		
+		if(graphicChecker[5] == 'S'){
+			char num[4];
+			if(graphicChecker[2] == '1'){
+				num[0] = graphicChecker[2];
+				num[1] = graphicChecker[3];
+				num[2] = graphicChecker[4];
+			}else{
+				num[0] = graphicChecker[3];
+				num[1] = graphicChecker[4];
+				num[2] = ' ';
+			}
+			speed = atoi(num);
+			char string_output[32];
+			if(speed >= 100){
+				speed = 100;
+			}else if(speed <= 0){
+				speed = 0;
+			}
+			snprintf(string_output, 32, "Speed set to: %d %%", speed);
+			gfx_mono_draw_string(string_output, 0, 0, &sysfont);
+		}		
+		if(graphicChecker[5] == 'F'){
+			//set motor speed
+			gpio_set_pin_high(J1_PIN4);
+			gpio_set_pin_low(J1_PIN6);
+			gpio_set_pin_low(J1_PIN5);
+			gpio_set_pin_high(J1_PIN7);
+			pwm_start(&mypwm[0], speed);
+			pwm_start(&mypwm[1], speed);
+		}
+		if(graphicChecker[5] == 'B'){
+			//set motor speed
+			gpio_set_pin_low(J1_PIN4);
+			gpio_set_pin_high(J1_PIN6);
+			gpio_set_pin_high(J1_PIN5);
+			gpio_set_pin_low(J1_PIN7);
+			pwm_start(&mypwm[0], speed);
+			pwm_start(&mypwm[1], speed);
+		}
+		if(graphicChecker[5] == 'P'){
+			pwm_start(&mypwm[0], 0);
+			pwm_start(&mypwm[1], 0);
+		}
+		if(graphicChecker[5] == 'R'){
+			gpio_set_pin_low(J1_PIN4);
+			gpio_set_pin_high(J1_PIN6);
+			gpio_set_pin_low(J1_PIN5);
+			gpio_set_pin_high(J1_PIN7);
+			pwm_start(&mypwm[0], 50);
+			pwm_start(&mypwm[1], 50);
+		}
+		if(graphicChecker[5] == 'L'){
+			gpio_set_pin_high(J1_PIN4);
+			gpio_set_pin_low(J1_PIN6);
+			gpio_set_pin_high(J1_PIN5);
+			gpio_set_pin_low(J1_PIN7);
+			pwm_start(&mypwm[0], 50);
+			pwm_start(&mypwm[1], 50);
+		}
+		
+	LED_Toggle(NHD_C12832A1Z_BACKLIGHT);
+	}
+}
