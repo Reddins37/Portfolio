@@ -16,7 +16,7 @@ static usart_rs232_options_t USART_SERIAL_OPTIONS = {
 	.stopbits = false
 };
 
-struct pwm_config mypwm[2]; //For your PWM configuration –CKH
+struct pwm_config mypwm[2]; //For your PWM configuration â€“CKH
 
 int main (void)
 {
